@@ -370,6 +370,17 @@ Example:
     umac-64-etm@openssh.com umac-128-etm@openssh.com hmac-sha2-256-etm@openssh.com
 `,
 			Advanced: true,
+		}, {
+			Name:    "host_key_algorithms",
+			Default: fs.CommaSepList{},
+			Help: `Comma separated list of host key algorithms, ordered by preference. At least one must match with server configuration.
+
+Note: This can affect the outcome of key negotiation with the server even if server host key validation is not enabled.
+
+Example:
+
+    ssh-ed25519,ssh-ed25519-cert-v01@openssh.com,sk-ssh-ed25519@openssh.com,sk-ssh-ed25519-cert-v01@openssh.com,ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521,ecdsa-sha2-nistp521-cert-v01@openssh.com,sk-ecdsa-sha2-nistp256@openssh.com,sk-ecdsa-sha2-nistp256-cert-v01@openssh.com,ssh-dss,ssh-dss-cert-v01@openssh.com,ssh-rsa,ssh-rsa-cert-v01@openssh.com
+`,
 		}},
 	}
 	fs.Register(fsi)
@@ -408,6 +419,7 @@ type Options struct {
 	Ciphers                 fs.SpaceSepList `config:"ciphers"`
 	KeyExchange             fs.SpaceSepList `config:"key_exchange"`
 	MACs                    fs.SpaceSepList `config:"macs"`
+	HostKeyAlgorithms       fs.CommaSepList `config:"host_key_algorithms"`
 }
 
 // Fs stores the interface to the remote SFTP files
@@ -738,6 +750,10 @@ func NewFs(ctx context.Context, name, root string, m configmap.Mapper) (fs.Fs, e
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Timeout:         f.ci.ConnectTimeout,
 		ClientVersion:   "SSH-2.0-" + f.ci.UserAgent,
+	}
+
+	if len(opt.HostKeyAlgorithms) != 0 {
+		sshConfig.HostKeyAlgorithms = []string(opt.HostKeyAlgorithms)
 	}
 
 	if opt.KnownHostsFile != "" {
